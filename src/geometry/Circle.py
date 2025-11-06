@@ -40,22 +40,30 @@ class Circle(Shape):
             end_deg = (i + 1) * self.panel_angle
             mid_deg = 0.5 * (start_deg + end_deg)
 
-            # Convert to radians. To make positive rotation clockwise,
-            # use y = cy - r*sin(theta) (i.e., flip the sign on sin).
-            theta = math.radians(start_deg)
-            xi = cx + self.radius * math.cos(theta)
-            yi = cy - self.radius * math.sin(theta)
+            # Start point (panel boundary)
+            theta_s = math.radians(start_deg)
+            x_start = cx + self.radius * math.cos(theta_s)
+            y_start = cy - self.radius * math.sin(theta_s)  # CW convention
 
-            self.x_i.append(xi)
-            self.y_i.append(yi)
+            # Mid-point of the panel (used for vectors)
+            theta_m = math.radians(mid_deg)
+            x_mid = cx + self.radius * math.cos(theta_m)
+            y_mid = cy - self.radius * math.sin(theta_m)  # CW convention
+
+            self.x_i.append(x_start)
+            self.y_i.append(y_start)
 
             self.panels.append(
                 {
                     "start_angle": start_deg,
                     "end_angle": end_deg,
                     "mid_angle": mid_deg,
-                    "x_i": xi,
-                    "y_i": yi,
+                    # Panel start (boundary) point
+                    "x_i": x_start,
+                    "y_i": y_start,
+                    # Panel midpoint (for plotting vectors)
+                    "xm_i": x_mid,
+                    "ym_i": y_mid,
                 }
             )
 
@@ -74,7 +82,7 @@ class Circle(Shape):
         if self.num_panels > 0:
             # Connect the points in order and close the loop to form the circle outline
             ax.plot(self.x_i, self.y_i, 'ro', label='Panel Start Points')
-            ax.plot(self.x_i, self.y_i, 'r-', label='Panel Start Points')
+            ax.plot(self.x_i, self.y_i, 'r-', label='Panel Lengths')
 
         ax.set_aspect('equal', 'box')
         ax.set_xlim(self.center[0] - self.radius - 1, self.center[0] + self.radius + 1)
@@ -85,7 +93,7 @@ class Circle(Shape):
         ax.grid(True)
         if self.num_panels > 0:
             ax.legend()
-        plt.savefig("circle_with_panels.png")
+        plt.savefig(self.output_dir + "/circle_with_panels.png")
 
     def print_info(self):
         print(f"Circle with radius: {self.radius} and center: {self.center}")
