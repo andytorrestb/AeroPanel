@@ -1,0 +1,2 @@
+class PanelSource:
+    pass
