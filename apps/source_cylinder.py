@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
 
     # Set up and solve the panel source problem
-    solver = pss(shape=circle, U_inf=1.0, alpha_deg=0.0)
+    solver = pss(shape=circle, U_inf=1.0)
     solver.assemble_influence_matrix()
     solver.assemble_rhs()
     solver.solve_source_strengths()
