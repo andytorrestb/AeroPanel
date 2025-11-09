@@ -17,3 +17,7 @@ if __name__ == "__main__":
 
     circle.plot_normals(scale=1.0)
     circle.plot_tangents(scale=1.0)
+
+    circle.set_control_points()
+    circle.plot_control_points()
+    circle.plot_panels(control_points=True)

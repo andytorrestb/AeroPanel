@@ -88,4 +88,70 @@ class Shape:
         ax.set_xlim(self.center[0] - self.radius - 1, self.center[0] + self.radius + 1)
         ax.set_ylim(self.center[1] - self.radius - 1, self.center[1] + self.radius + 1)
         ax.grid(True)
-        plt.savefig(self.output_dir + "/panel_tangents.png")    
+        plt.savefig(self.output_dir + "/panel_tangents.png")
+
+
+    def set_control_points(self):
+        # Set control points at 3/4 of each panel length from the start point
+        self.control_points = []
+        for i in range(self.num_panels - 1):
+            start_x = self.panels[i]["x_i"]
+            end_x = self.panels[i+1]["x_i"]
+            control_x = start_x + 0.75 * (end_x - start_x)
+
+            start_y = self.panels[i]["y_i"]
+            end_y = self.panels[i+1]["y_i"]
+            control_y = start_y + 0.75 * (end_y - start_y)
+
+            self.control_points.append((control_x, control_y))
+        self.control_points = np.array(self.control_points)
+    
+    def plot_control_points(self):
+        if not hasattr(self, 'control_points'):
+            raise ValueError("Control points not set. Call set_control_points() first.")
+
+        fig, ax = plt.subplots()
+        ax.set_title("Panel Control Points")
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+
+        ax.plot(self.control_points[:, 0], self.control_points[:, 1], 'ms', label='Control Points')
+
+        ax.set_aspect('equal', 'box')
+        ax.set_xlim(self.center[0] - self.radius - 1, self.center[0] + self.radius + 1)
+        ax.set_ylim(self.center[1] - self.radius - 1, self.center[1] + self.radius + 1)
+        ax.grid(True)
+        ax.legend()
+        plt.savefig(self.output_dir + "/panel_control_points.png")
+    
+    def plot_panels(self, control_points=False):
+        if not hasattr(self, 'panels'):
+            raise ValueError("Panels not set. Call set_panels() first.")
+
+        fig, ax = plt.subplots()
+        ax.set_title("Panels")
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+
+        x_i = []
+        y_i = []
+        for panel in self.panels:
+            x_start = panel["x_i"]
+            y_start = panel["y_i"]
+            x_i.append(x_start)
+            y_i.append(y_start)
+        x_i = np.array(x_i)
+        y_i = np.array(y_i)
+        ax.plot(x_i, y_i, 'r-')
+        ax.plot(x_i, y_i, 'ro')
+
+        if control_points:
+            if not hasattr(self, 'control_points'):
+                raise ValueError("Control points not set. Call set_control_points() first.")
+            ax.plot(self.control_points[:, 0], self.control_points[:, 1], 'ms', label='Control Points')
+
+        ax.set_aspect('equal', 'box')
+        ax.set_xlim(self.center[0] - self.radius - 1, self.center[0] + self.radius + 1)
+        ax.set_ylim(self.center[1] - self.radius - 1, self.center[1] + self.radius + 1)
+        ax.grid(True)
+        plt.savefig(self.output_dir + "/panels.png")
