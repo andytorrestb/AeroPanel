@@ -1,7 +1,6 @@
 import apps_header
 
 from geometry.Circle import Circle
-from geometry.Shape import Shape
 
 if __name__ == "__main__":
 
