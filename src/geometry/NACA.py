@@ -166,6 +166,10 @@ class NACA(Shape):
         """
         if not self.panels or self.num_panels == 0:
             raise ValueError("Panels not set. Call set_panels() first.")
+        # Determine boundary orientation by signed area
+        area = self._signed_area_from_panels()
+        # If area < 0 => CW; area > 0 => CCW
+        rotate = "ccw" if area < 0 else "cw"
 
         N = np.zeros((self.num_panels, 2))
         for i in range(self.num_panels):
@@ -178,8 +182,12 @@ class NACA(Shape):
                 N[i] = np.array([0.0, 0.0])
                 continue
             tx, ty = dx / L, dy / L
-            # Rotate tangent +90 deg (CCW) to get outward normal for CW ordering
-            nx, ny = -ty, tx
+            if rotate == "ccw":
+                # Outward = +90° rotation when ordering is CW
+                nx, ny = -ty, tx
+            else:
+                # Outward = -90° rotation when ordering is CCW
+                nx, ny = ty, -tx
             N[i] = np.array([nx, ny])
         self.N = N
 
@@ -253,7 +261,7 @@ class NACA(Shape):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.grid(True)
-        ax.legend()
+        ax.legend(loc='center', bbox_to_anchor=(0.5, -1.85), frameon=True)
         plt.savefig(self.output_dir + "/airfoil_with_panels.png")
         plt.close(fig)
 
@@ -282,8 +290,8 @@ class NACA(Shape):
 
         ax.set_aspect('equal', 'box')
         xmin, xmax, ymin, ymax = self._axes_limits()
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(ymin, ymax)
+        ax.set_xlim(xmin - 0.25, xmax + 0.25)
+        ax.set_ylim(ymin - 0.5, ymax + 0.5)
         ax.grid(True)
         plt.savefig(self.output_dir + "/panel_normals.png")
         plt.close(fig)
@@ -312,8 +320,8 @@ class NACA(Shape):
 
         ax.set_aspect('equal', 'box')
         xmin, xmax, ymin, ymax = self._axes_limits()
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(ymin, ymax)
+        ax.set_xlim(xmin - 0.25, xmax + 0.25)
+        ax.set_ylim(ymin - 0.5, ymax + 0.5)
         ax.grid(True)
         plt.savefig(self.output_dir + "/panel_tangents.png")
         plt.close(fig)
@@ -338,7 +346,7 @@ class NACA(Shape):
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.grid(True)
-        ax.legend()
+        ax.legend(loc='center', bbox_to_anchor=(0.5, -1.85), frameon=True)
         plt.savefig(self.output_dir + "/panel_control_points.png")
         plt.close(fig)
 
@@ -414,6 +422,10 @@ class NACA(Shape):
         N = np.zeros((self.num_panels, 2))
         T = np.zeros((self.num_panels, 2))
         cps = []
+
+        # Determine boundary orientation by signed area
+        area = self._signed_area_from_panels()
+        rotate = "ccw" if area < 0 else "cw"
         for i in range(self.num_panels):
             j = (i + 1) % self.num_panels
             xi, yi = self.panels[i]["x_i"], self.panels[i]["y_i"]
@@ -427,7 +439,10 @@ class NACA(Shape):
             else:
                 tx, ty = dx / L, dy / L
                 T[i] = np.array([tx, ty])
-                N[i] = np.array([-ty, tx])  # outward for CW ordering
+                if rotate == "ccw":
+                    N[i] = np.array([-ty, tx])  # outward for CW ordering
+                else:
+                    N[i] = np.array([ty, -tx])  # outward for CCW ordering
             # 3/4 control point like Shape.set_control_points
             cx = xi + 0.75 * dx
             cy = yi + 0.75 * dy
@@ -437,3 +452,14 @@ class NACA(Shape):
         self.N = N
         self.T = T
         self.control_points = np.array(cps)
+
+    def _signed_area_from_panels(self) -> float:
+        """Compute polygon signed area from panel start points (shoelace formula).
+
+        > 0 => CCW, < 0 => CW
+        """
+        x = np.array([p["x_i"] for p in self.panels])
+        y = np.array([p["y_i"] for p in self.panels])
+        x_next = np.roll(x, -1)
+        y_next = np.roll(y, -1)
+        return 0.5 * np.sum(x * y_next - x_next * y)
