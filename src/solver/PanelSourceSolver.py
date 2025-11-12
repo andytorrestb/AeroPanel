@@ -197,20 +197,51 @@ class PanelSourceSolver:
         import matplotlib.pyplot as plt
 
         print("Plotting pressure coefficients...")
-        theta = [panel["mid_angle"] for panel in self.shape.panels]
+        # Prefer plotting vs x/c when available (suitable for airfoils)
+        try:
+            x = np.array([p.get("xm_i", p["x_i"]) for p in self.shape.panels])
+            # Normalize by chord if attribute available
+            chord = getattr(self.shape, 'chord_length', None)
+            if chord is not None and chord > 0:
+                x_plot = x / chord
+                x_label = "x / c"
+            else:
+                x_plot = x
+                x_label = "x"
 
-        plt.figure()
-        plt.plot(theta, self.Cp, marker='o')
-        plt.xlabel("Panel Mid-Angle (degrees)")
-        plt.ylabel("Pressure Coefficient (Cp)")
-        plt.title("Pressure Coefficient Distribution")
-        plt.gca().invert_yaxis()  # Cp is typically plotted inverted
-        plt.grid(True)
-        plt.savefig(self.shape.output_dir + "/pressure_coefficients.png")
-        plt.close()
-        print("Pressure coefficient plot saved.")
+            plt.figure()
+            plt.plot(x_plot, self.Cp, marker='o')
+            plt.xlabel(x_label)
+            plt.ylabel("Pressure Coefficient (Cp)")
+            plt.title("Pressure Coefficient Distribution")
+            plt.gca().invert_yaxis()
+            plt.grid(True)
+            plt.savefig(self.shape.output_dir + "/pressure_coefficients.png")
+            plt.close()
+            print("Pressure coefficient plot saved (vs x).")
+        except Exception as e:
+            print(f"Falling back to theta plot due to: {e}")
+            theta = [panel.get("mid_angle", 0.0) for panel in self.shape.panels]
+            plt.figure()
+            plt.plot(theta, self.Cp, marker='o')
+            plt.xlabel("Panel Mid-Angle (degrees)")
+            plt.ylabel("Pressure Coefficient (Cp)")
+            plt.title("Pressure Coefficient Distribution")
+            plt.gca().invert_yaxis()  # Cp is typically plotted inverted
+            plt.grid(True)
+            plt.savefig(self.shape.output_dir + "/pressure_coefficients.png")
+            plt.close()
+            print("Pressure coefficient plot saved.")
         return
     
     def get_Cp_theta(self):
         theta = [panel["mid_angle"] for panel in self.shape.panels]
         return theta, self.Cp
+
+    def get_Cp_x(self):
+        """Return (x/c, Cp) arrays if chord_length available; otherwise (x, Cp)."""
+        x = np.array([p.get("xm_i", p["x_i"]) for p in self.shape.panels])
+        chord = getattr(self.shape, 'chord_length', None)
+        if chord is not None and chord > 0:
+            return x / chord, self.Cp
+        return x, self.Cp

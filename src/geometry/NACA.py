@@ -41,6 +41,7 @@ class NACA(Shape):
         spacing: str = "cosine",
         angle_of_attack_deg: float = 0.0,
         origin: Tuple[float, float] = (0.0, 0.0),
+        sharp_te: bool = True,
     ) -> None:
         """Discretize the NACA 4-digit airfoil into straight-line panels.
 
@@ -62,8 +63,8 @@ class NACA(Shape):
         # Base chord coordinates (before rotation/translation)
         x = x01 * self.chord_length
 
-        # Thickness distribution (with finite TE thickness via 0.1015 coefficient)
-        yt = self._thickness_dist(x01, t) * self.chord_length
+        # Thickness distribution (optionally sharp trailing edge)
+        yt = self._thickness_dist(x01, t, sharp_te=sharp_te) * self.chord_length
 
         # Camber line and slope
         yc, dyc_dx = self._camber_and_slope(x01, m, p)
@@ -136,6 +137,7 @@ class NACA(Shape):
         num_panels: int,
         angle_of_attack_deg: float = 0.0,
         origin: Tuple[float, float] = (0.0, 0.0),
+        sharp_te: bool = True,
     ) -> None:
         """Convenience wrapper for set_panels(..., spacing='cosine')."""
         self.set_panels(
@@ -143,6 +145,7 @@ class NACA(Shape):
             spacing="cosine",
             angle_of_attack_deg=angle_of_attack_deg,
             origin=origin,
+            sharp_te=sharp_te,
         )
 
     def set_panels_uniform(
@@ -150,6 +153,7 @@ class NACA(Shape):
         num_panels: int,
         angle_of_attack_deg: float = 0.0,
         origin: Tuple[float, float] = (0.0, 0.0),
+        sharp_te: bool = True,
     ) -> None:
         """Convenience wrapper for set_panels(..., spacing='uniform')."""
         self.set_panels(
@@ -157,6 +161,7 @@ class NACA(Shape):
             spacing="uniform",
             angle_of_attack_deg=angle_of_attack_deg,
             origin=origin,
+            sharp_te=sharp_te,
         )
 
     def set_panel_normals(self) -> None:
@@ -383,17 +388,18 @@ class NACA(Shape):
             raise ValueError("spacing must be 'cosine' or 'uniform'")
 
     @staticmethod
-    def _thickness_dist(x: np.ndarray, t: float) -> np.ndarray:
+    def _thickness_dist(x: np.ndarray, t: float, sharp_te: bool = True) -> np.ndarray:
         """NACA 4-digit thickness distribution y_t/c for x in [0,1].
 
-        Uses 0.1015 for the x^4 coefficient (finite TE thickness).
+        sharp_te=True uses 0.1036 (zero TE thickness). If False, uses 0.1015 (finite TE).
         """
+        coeff = 0.1036 if sharp_te else 0.1015
         return 5.0 * t * (
             0.2969 * np.sqrt(np.clip(x, 0.0, 1.0))
             - 0.1260 * x
             - 0.3516 * x**2
             + 0.2843 * x**3
-            - 0.1015 * x**4
+            - coeff * x**4
         )
 
     @staticmethod
@@ -443,9 +449,9 @@ class NACA(Shape):
                     N[i] = np.array([-ty, tx])  # outward for CW ordering
                 else:
                     N[i] = np.array([ty, -tx])  # outward for CCW ordering
-            # 3/4 control point like Shape.set_control_points
-            cx = xi + 0.75 * dx
-            cy = yi + 0.75 * dy
+            # Midpoint control point (more conventional for collocation)
+            cx = xi + 0.5 * dx
+            cy = yi + 0.5 * dy
             cps.append((cx, cy))
 
         self.S = S

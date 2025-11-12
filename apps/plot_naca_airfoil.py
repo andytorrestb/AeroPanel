@@ -6,7 +6,7 @@ if __name__ == "__main__":
     # Example: NACA 0012, 80 panels with cosine spacing
     airfoil = NACA("0012", chord_length=1.0)
     airfoil.set_panels(num_panels=80, spacing="cosine", angle_of_attack_deg=0.0)
-    airfoil.set_output_directory("output/source_naca")
+    airfoil.set_output_directory("output/plot_naca")
 
     airfoil.print_info()
 
