@@ -49,6 +49,7 @@ if __name__ == "__main__":
 
 
     import matplotlib.pyplot as plt
+    # Cartesian comparison
     fig, ax = plt.subplots()
     ax.plot(theta_analytical, Cp_analytical, 'k--', label="Analytical Solution")
     for n_panels, (theta, Cp) in results.items():
@@ -57,9 +58,25 @@ if __name__ == "__main__":
     ax.set_ylabel("Pressure Coefficient (Cp)")
     ax.set_title("Pressure Coefficient Distribution for Different Panel Counts")
     ax.grid(True)
-
-    # Place legend outside the main plot to the right
     ax.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), borderaxespad=0.0, frameon=True)
-
-    # Save with tight bounding box so the external legend is included
     fig.savefig("output/source_cylinder/comparative_Cp.png", bbox_inches='tight')
+
+    # Polar comparison (theta must be in radians)
+    # Negative Cp values are projected opposite by adding π to angle and plotting |Cp| as radius.
+    fig_polar, ax_polar = plt.subplots(subplot_kw={'projection': 'polar'})
+    theta_analytical_rad = theta_analytical * np.pi / 180.0
+    Cp_a = Cp_analytical
+    theta_a_proj = np.where(Cp_a >= 0.0, theta_analytical_rad, theta_analytical_rad + np.pi)
+    r_a = np.abs(Cp_a)
+    ax_polar.plot(theta_a_proj, r_a, 'k--', label="Analytical Solution")
+    for n_panels, (theta, Cp) in results.items():
+        theta_rad = np.deg2rad(theta)
+        theta_proj = np.where(Cp >= 0.0, theta_rad, theta_rad + np.pi)
+        r = np.abs(Cp)
+        ax_polar.plot(theta_proj, r, label=f"{n_panels} panels")
+    ax_polar.set_theta_zero_location('E')  # 0 degrees at +x
+    ax_polar.set_theta_direction(-1)       # CW increasing, to match geometry convention
+    ax_polar.set_title("|Cp| with Sign-Projected Direction (Polar)")
+    # Place legend outside to the right of the polar axes
+    ax_polar.legend(loc='center left', bbox_to_anchor=(1.15, 0.5), frameon=True)
+    fig_polar.savefig("output/source_cylinder/comparative_Cp_polar.png", bbox_inches='tight')
