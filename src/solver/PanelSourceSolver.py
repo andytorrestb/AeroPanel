@@ -210,3 +210,7 @@ class PanelSourceSolver:
         plt.close()
         print("Pressure coefficient plot saved.")
         return
+    
+    def get_Cp_theta(self):
+        theta = [panel["mid_angle"] for panel in self.shape.panels]
+        return theta, self.Cp
