@@ -200,6 +200,7 @@ class PanelSourceSolver:
         # Prefer plotting vs x/c when available (suitable for airfoils)
         try:
             x = np.array([p.get("xm_i", p["x_i"]) for p in self.shape.panels])
+            y = np.array([p.get("ym_i", p["y_i"]) for p in self.shape.panels])
             # Normalize by chord if attribute available
             chord = getattr(self.shape, 'chord_length', None)
             if chord is not None and chord > 0:
@@ -209,16 +210,24 @@ class PanelSourceSolver:
                 x_plot = x
                 x_label = "x"
 
-            plt.figure()
-            plt.plot(x_plot, self.Cp, marker='o')
+            # Separate upper and lower surfaces based on panel ordering
+            # For NACA airfoils: panels are ordered clockwise starting from TE upper surface
+            # Upper surface: from TE to LE, Lower surface: from LE back toward TE
+            upper_x, upper_Cp, lower_x, lower_Cp = self._separate_upper_lower_surfaces(x_plot, self.Cp, y)
+
+            plt.figure(figsize=(10, 6))
+            plt.plot(upper_x, upper_Cp, 'b-o', label='Upper Surface', linewidth=2, markersize=4)
+            plt.plot(lower_x, lower_Cp, 'r-o', label='Lower Surface', linewidth=2, markersize=4)
             plt.xlabel(x_label)
             plt.ylabel("Pressure Coefficient (Cp)")
             plt.title("Pressure Coefficient Distribution")
             plt.gca().invert_yaxis()
             plt.grid(True)
-            plt.savefig(self.shape.output_dir + "/pressure_coefficients.png")
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig(self.shape.output_dir + "/pressure_coefficients.png", dpi=300, bbox_inches='tight')
             plt.close()
-            print("Pressure coefficient plot saved (vs x).")
+            print("Pressure coefficient plot saved (vs x) with separated surfaces.")
         except Exception as e:
             print(f"Falling back to theta plot due to: {e}")
             theta = [panel.get("mid_angle", 0.0) for panel in self.shape.panels]
@@ -234,6 +243,35 @@ class PanelSourceSolver:
             print("Pressure coefficient plot saved.")
         return
     
+    def _separate_upper_lower_surfaces(self, x_plot, Cp, y):
+        """
+        Separate pressure coefficients into upper and lower surfaces for airfoils.
+        
+        For NACA airfoils with clockwise panel ordering:
+        - Panels start at TE upper surface, go to LE along upper surface
+        - Then continue from LE to TE along lower surface
+        
+        Returns: upper_x, upper_Cp, lower_x, lower_Cp
+        """
+        # Find the leading edge (minimum x position)
+        min_x_idx = np.argmin(x_plot)
+        
+        # Split based on panel ordering and leading edge position
+        # Upper surface: from start (TE) to leading edge
+        upper_indices = list(range(0, min_x_idx + 1))
+        # Lower surface: from leading edge to end (back toward TE)
+        lower_indices = list(range(min_x_idx, len(x_plot)))
+        
+        # Extract upper surface data and reverse for proper plotting order (LE to TE)
+        upper_x = x_plot[upper_indices][::-1]
+        upper_Cp = Cp[upper_indices][::-1]
+        
+        # Extract lower surface data (already in LE to TE order)
+        lower_x = x_plot[lower_indices]
+        lower_Cp = Cp[lower_indices]
+        
+        return upper_x, upper_Cp, lower_x, lower_Cp
+    
     def get_Cp_theta(self):
         theta = [panel["mid_angle"] for panel in self.shape.panels]
         return theta, self.Cp
@@ -245,3 +283,27 @@ class PanelSourceSolver:
         if chord is not None and chord > 0:
             return x / chord, self.Cp
         return x, self.Cp
+    
+    def get_Cp_surfaces(self):
+        """
+        Return pressure coefficient data separated by upper and lower surfaces.
+        
+        Returns:
+            dict: Contains 'upper' and 'lower' keys, each with 'x' and 'Cp' arrays
+        """
+        x = np.array([p.get("xm_i", p["x_i"]) for p in self.shape.panels])
+        y = np.array([p.get("ym_i", p["y_i"]) for p in self.shape.panels])
+        
+        # Normalize by chord if attribute available
+        chord = getattr(self.shape, 'chord_length', None)
+        if chord is not None and chord > 0:
+            x_plot = x / chord
+        else:
+            x_plot = x
+            
+        upper_x, upper_Cp, lower_x, lower_Cp = self._separate_upper_lower_surfaces(x_plot, self.Cp, y)
+        
+        return {
+            'upper': {'x': upper_x, 'Cp': upper_Cp},
+            'lower': {'x': lower_x, 'Cp': lower_Cp}
+        }
