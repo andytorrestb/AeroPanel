@@ -8,43 +8,30 @@ class PanelSourceSolver:
         return
     
     def assemble_influence_matrix(self):
+        """Assemble influence matrix using point-source approximation."""
         print("Assembling influence matrix...")
         Np = self.shape.num_panels
         self.M = np.zeros((Np, Np))
 
-        # Precompute easy accessors
         normals = getattr(self.shape, 'N', None)
         if normals is None:
             raise ValueError("Panel normals not set on shape. Call shape.set_panel_normals() before assembling.")
 
-        # For endpoints of panel i: start is panels[i], end is panels[(i+1) % Np]
-        def panel_endpoints(i):
-            i_next = (i + 1) % Np
-            x1 = self.shape.panels[i]["x_i"]
-            y1 = self.shape.panels[i]["y_i"]
-            x2 = self.shape.panels[i_next]["x_i"]
-            y2 = self.shape.panels[i_next]["y_i"]
-            return x1, y1, x2, y2
-
-        # Control point for row j: use panel midpoint (xm, ym)
-        def control_point(j):
-            return self.shape.panels[j].get("xm_i", self.shape.panels[j]["x_i"]), \
-                   self.shape.panels[j].get("ym_i", self.shape.panels[j]["y_i"])
+        cps = self._get_control_points_array()
+        S = self._get_panel_lengths_array()
 
         for j in range(Np):
-            xP, yP = control_point(j)
-            nj = normals[j]  # outward unit normal at control point j
-
             for i in range(Np):
                 if i == j:
-                    # Analytical self-influence of a source panel is 1/2 on the normal component
                     self.M[j, i] = 0.5
                     continue
 
-                x1, y1, x2, y2 = panel_endpoints(i)
-                u_vec = self._source_panel_velocity_at_point(x1, y1, x2, y2, xP, yP)
-                # Project the induced velocity onto control point normal: A_ji = n_j · u^(S) for σ_i = 1
-                self.M[j, i] = np.dot(nj, u_vec)
+                R = cps[j] - cps[i]
+                r2 = np.dot(R, R)
+                if r2 < 1e-18:
+                    self.M[j, i] = 0.0
+                else:
+                    self.M[j, i] = (S[i] / (2.0 * np.pi * r2)) * np.dot(normals[j], R)
 
         print(f"Influence matrix assembled with shape {self.M.shape}.")
         return
@@ -129,36 +116,21 @@ class PanelSourceSolver:
         self.V_t = np.zeros(Np)
         U_vec = np.array([self.U_inf, 0.0])
 
-        # Precompute panel endpoint data for reuse
-        def panel_endpoints(i):
-            i_next = (i + 1) % Np
-            x1 = self.shape.panels[i]["x_i"]
-            y1 = self.shape.panels[i]["y_i"]
-            x2 = self.shape.panels[i_next]["x_i"]
-            y2 = self.shape.panels[i_next]["y_i"]
-            return x1, y1, x2, y2
-
-        def control_point(j):
-            return self.shape.panels[j].get("xm_i", self.shape.panels[j]["x_i"]), \
-                   self.shape.panels[j].get("ym_i", self.shape.panels[j]["y_i"])
+        cps = self._get_control_points_array()
+        S = self._get_panel_lengths_array()
 
         for j in range(Np):
-            xP, yP = control_point(j)
             t_j = tangents[j]
-
-            # Start with freestream contribution
             V_total = U_vec.copy()
 
-            # Add all source panel induced velocities
             for i in range(Np):
-                if i == j:
-                    # Self-induced tangential velocity of a source panel is zero
-                    continue
-                x1, y1, x2, y2 = panel_endpoints(i)
-                u_vec = self._source_panel_velocity_at_point(x1, y1, x2, y2, xP, yP)
-                V_total += self.sigma[i] * u_vec
+                R = cps[j] - cps[i]
+                r2 = np.dot(R, R)
+                if r2 < 1e-18:
+                    V_total += 0.5 * self.sigma[i] * normals[i]
+                else:
+                    V_total += (self.sigma[i] * S[i] / (2.0 * np.pi)) * (R / r2)
 
-            # Project onto tangent
             self.V_t[j] = np.dot(t_j, V_total)
 
         print("Tangential velocities computed.")
@@ -307,3 +279,27 @@ class PanelSourceSolver:
             'upper': {'x': upper_x, 'Cp': upper_Cp},
             'lower': {'x': lower_x, 'Cp': lower_Cp}
         }
+
+    def _get_control_points_array(self):
+        cps = getattr(self.shape, 'control_points', None)
+        if cps is not None and len(cps) == self.shape.num_panels:
+            return np.array(cps, dtype=float)
+        cp_list = []
+        for panel in self.shape.panels:
+            cp_list.append([
+                panel.get("xm_i", panel["x_i"]),
+                panel.get("ym_i", panel["y_i"])
+            ])
+        return np.array(cp_list, dtype=float)
+
+    def _get_panel_lengths_array(self):
+        S = getattr(self.shape, 'S', None)
+        if S is None or len(S) != self.shape.num_panels:
+            S = np.zeros(self.shape.num_panels)
+            for i in range(self.shape.num_panels):
+                j = (i + 1) % self.shape.num_panels
+                dx = self.shape.panels[j]["x_i"] - self.shape.panels[i]["x_i"]
+                dy = self.shape.panels[j]["y_i"] - self.shape.panels[i]["y_i"]
+                S[i] = np.hypot(dx, dy)
+            self.shape.S = S
+        return np.array(S, dtype=float)
