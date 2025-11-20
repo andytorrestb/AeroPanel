@@ -1,10 +1,11 @@
 import numpy as np
 
 class PanelSourceSolver:
-    def __init__(self, shape, U_inf):
+    def __init__(self, shape, U_inf, enforce_kutta=False):
         print
         self.shape = shape
         self.U_inf = U_inf
+        self.enforce_kutta = enforce_kutta
         return
     
     def assemble_influence_matrix(self):
@@ -95,6 +96,9 @@ class PanelSourceSolver:
             n_j = normals[j]
             # RHS_j = - n_j · U_inf
             self.RHS[j] = -np.dot(n_j, U_vec)
+
+        if self.enforce_kutta:
+            self._apply_trailing_edge_kutta_condition(U_vec)
 
         print(f"RHS vector assembled with shape {self.RHS.shape}.")
         return
@@ -279,6 +283,48 @@ class PanelSourceSolver:
             'upper': {'x': upper_x, 'Cp': upper_Cp},
             'lower': {'x': lower_x, 'Cp': lower_Cp}
         }
+
+    def _apply_trailing_edge_kutta_condition(self, U_vec):
+        tangents = getattr(self.shape, 'T', None)
+        if tangents is None:
+            raise ValueError("Panel tangents not set. Call shape.set_panel_tangents() before enforcing Kutta condition.")
+
+        cps = self._get_control_points_array()
+        S = self._get_panel_lengths_array()
+        Np = self.shape.num_panels
+        if Np < 2:
+            raise ValueError("Need at least two panels to enforce Kutta condition.")
+
+        idx_upper = 0
+        idx_lower = Np - 1
+
+        row_upper = self._tangential_influence_row(idx_upper, tangents, cps, S)
+        row_lower = self._tangential_influence_row(idx_lower, tangents, cps, S)
+
+        kutta_row = row_upper - row_lower
+        kutta_rhs = np.dot(U_vec, tangents[idx_lower] - tangents[idx_upper])
+
+        self.M[-1, :] = kutta_row
+        self.RHS[-1] = kutta_rhs
+        print("Applied trailing-edge Kutta condition.")
+
+    def _tangential_influence_row(self, target_idx, tangents, cps, panel_lengths):
+        Np = self.shape.num_panels
+        row = np.zeros(Np)
+        t_vec = tangents[target_idx]
+        target_cp = cps[target_idx]
+
+        for i in range(Np):
+            if i == target_idx:
+                continue
+            R = target_cp - cps[i]
+            r2 = np.dot(R, R)
+            if r2 < 1e-18:
+                continue
+            coef = panel_lengths[i] / (2.0 * np.pi)
+            row[i] = coef * np.dot(t_vec, R) / r2
+
+        return row
 
     def _get_control_points_array(self):
         cps = getattr(self.shape, 'control_points', None)

@@ -2,6 +2,8 @@ import apps_header
 
 from geometry.NACA import NACA
 
+APPLY_KUTTA_CONDITION = True
+
 if __name__ == "__main__":
     # Example: NACA 0012, 80 panels with cosine spacing
     airfoil = NACA("0012", chord_length=1.0)
@@ -15,7 +17,7 @@ if __name__ == "__main__":
 
     # Solver
     from solver.PanelSourceSolver import PanelSourceSolver as pss
-    solver = pss(shape=airfoil, U_inf=1.0)
+    solver = pss(shape=airfoil, U_inf=1.0, enforce_kutta=APPLY_KUTTA_CONDITION)
     solver.assemble_influence_matrix()
     solver.assemble_rhs()
     solver.solve_source_strengths()
