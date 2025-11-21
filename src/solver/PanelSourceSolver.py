@@ -150,6 +150,54 @@ class PanelSourceSolver:
 
         print("Pressure coefficients computed.")
         return
+
+    def compute_aero_coefficients(self, reference_point=None):
+        """Compute lift coefficient Cl and quarter-chord moment Cm."""
+        if not hasattr(self, 'Cp'):
+            raise ValueError("Pressure coefficients not available. Call compute_pressure_coefficients() first.")
+
+        chord = getattr(self.shape, 'chord_length', None)
+        if chord is None or chord <= 0:
+            raise ValueError("Shape must define a positive chord_length to compute aerodynamic coefficients.")
+
+        normals = getattr(self.shape, 'N', None)
+        if normals is None:
+            raise ValueError("Panel normals not set. Call shape.set_panel_normals().")
+
+        S = self._get_panel_lengths_array()
+        cps = self._get_control_points_array()
+        x = cps[:, 0]
+        y = cps[:, 1]
+        nx = normals[:, 0]
+        ny = normals[:, 1]
+
+        cp = self.Cp
+        ds = S
+
+        Fx = -cp * nx * ds
+        Fy = -cp * ny * ds
+
+        rho = getattr(self, 'rho', 1.0)
+        q = 0.5 * rho * (self.U_inf ** 2)
+        span = 1.0  # unit span assumption for 2D airfoils
+        Cl = np.sum(Fy) / (q * chord * span)
+
+        if reference_point is None:
+            x_ref = 0.25 * chord
+            y_ref = 0.0
+        else:
+            x_ref, y_ref = reference_point
+
+        xr = x - x_ref
+        yr = y - y_ref
+        moment = -np.sum(cp * (xr * ny - yr * nx) * ds)
+        Cm = moment / (q * chord ** 2 * span)
+
+        self.Cl = Cl
+        self.Cm_c4 = Cm
+        print(f"Coefficient of Lift (Cl): {Cl:.4f}")
+        print(f"Moment Coefficient about c/4 (Cm_c4): {Cm:.4f}")
+        return Cl, Cm
     
     def print_panel_source_strengths(self):
         print("Panel Source Strengths (sigma):")
