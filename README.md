@@ -97,16 +97,16 @@ This pseudocode outlines the key steps to implement a **2D external flow solver*
 
 ```mermaid
 flowchart TD
-  U["Freestream inputs (U∞, α)"]
-  G["Geometry inputs (circle / NACA, panel count N)"]
-  Geo["Generate panel geometry\n(points, Δs, t̂, n̂, control points)"]
-  A["Assemble influence matrix A\n(normal projection of unit sources)"]
-  RHS["Assemble RHS = -n̂·U∞"]
-  Solve["Solve for source strengths σ"]
-  Ut["Compute tangential velocity u_t\n(t̂·(U∞ + induced))"]
-  Cp["Compute Cp = 1 - (u_t / |U∞|)^2"]
-  Forces["Integrate Cp → Cl, Cm"]
-  Output["Plots + outputs\n(geometry, Cp, σ, Cl, Cm)"]
+  U["Freestream (U∞, α)"]
+  G["Geometry (shape, N)"]
+  Geo["Panels + control pts\nΔs, t̂, n̂"]
+  A["Influence matrix A\n(normal velocity)"]
+  RHS["RHS = -n̂·U∞"]
+  Solve["Solve for σ"]
+  Ut["Tangential velocity u_t\n(t̂·(U∞ + induced))"]
+  Cp["Pressure Cp"]
+  Forces["Integrate → Cl, Cm"]
+  Output["Plots + tables"]
 
   U --> RHS
   G --> Geo
@@ -120,4 +120,13 @@ flowchart TD
   Cp --> Forces
   Cp --> Output
   Forces --> Output
+
+  subgraph Legend
+    L1["Δs: panel length"]
+    L2["t̂ / n̂: tangent / normal unit vectors"]
+    L3["σ: source strength"]
+    L4["u_t: tangential velocity"]
+    L5["Cp: pressure coefficient"]
+    L6["Cl, Cm: lift / moment coefficients"]
+  end
 ```
