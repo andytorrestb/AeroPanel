@@ -122,11 +122,10 @@ flowchart TD
   Forces --> Output
 
   subgraph Legend
-    L1["Δs: panel length"]
-    L2["t̂ / n̂: tangent / normal unit vectors"]
-    L3["σ: source strength"]
-    L4["u_t: tangential velocity"]
-    L5["Cp: pressure coefficient"]
-    L6["Cl, Cm: lift / moment coefficients"]
+    L1["σ: source strength"]
+    L2["u_t: tangential velocity"]
+    L3["Cp: pressure coefficient"]
+    L4["Cl, Cm: lift coefficients]
+    L5["Cm:  moment coefficient]
   end
 ```
