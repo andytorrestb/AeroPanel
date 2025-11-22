@@ -126,7 +126,7 @@ flowchart TD
     L2["σ: source strength"]
     L3["u_t: tangential velocity"]
     L4["Cp: pressure coefficient"]
-    L5["Cl, Cm: lift coefficients]
+    L5["Cl: lift coefficients]
     L6["Cm:  moment coefficient]
   end
 ```
