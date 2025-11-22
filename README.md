@@ -90,3 +90,34 @@ This pseudocode outlines the key steps to implement a **2D external flow solver*
 - Use **cosine spacing** for better clustering near leading/trailing edges
 - Ensure **self-influence** is correctly computed
 - Use **double precision** to handle matrix conditioning as `N` increases
+
+---
+
+## Data-Flow Diagram
+
+```mermaid
+flowchart TD
+  U["Freestream inputs (U∞, α)"]
+  G["Geometry inputs (circle / NACA, panel count N)"]
+  Geo["Generate panel geometry\n(points, Δs, t̂, n̂, control points)"]
+  A["Assemble influence matrix A\n(normal projection of unit sources)"]
+  RHS["Assemble RHS = -n̂·U∞"]
+  Solve["Solve for source strengths σ"]
+  Ut["Compute tangential velocity u_t\n(t̂·(U∞ + induced))"]
+  Cp["Compute Cp = 1 - (u_t / |U∞|)^2"]
+  Forces["Integrate Cp → Cl, Cm"]
+  Output["Plots + outputs\n(geometry, Cp, σ, Cl, Cm)"]
+
+  U --> RHS
+  G --> Geo
+  Geo --> A
+  Geo --> RHS
+  Geo --> Ut
+  A --> Solve
+  RHS --> Solve
+  Solve --> Ut
+  Ut --> Cp
+  Cp --> Forces
+  Cp --> Output
+  Forces --> Output
+```
