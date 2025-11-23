@@ -8,10 +8,10 @@ This repository contains a lightweight, educational implementation of a **2D ext
 AeroPanel/
 ├── apps/               # Example scripts
 │   ├── apps_header.py      # Common CLI options
-│   ├── naca_source.py      # NACA panel generation & plots
 │   ├── plot_circle_panels.py # Circle panel visualization
 │   ├── plot_naca_airfoil.py  # Airfoil panel visualization
 │   ├── source_cylinder.py    # Cylinder flow example
+│   ├── naca_source.py      # NACA flow example
 │   └── xfoil_source_comp.py  # XFOIL comparison helper
 └── src/                # Library code
     ├── geometry/
@@ -116,6 +116,7 @@ AeroPanel/
 ---
 
 ## Data-Flow Diagram
+
 
 ```
 Inputs: Freestream (U∞, α), Geometry (shape, N)
