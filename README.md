@@ -1,6 +1,28 @@
 # AeroPanel - Pseudocode
 
-This pseudocode outlines the key steps to implement a **2D external flow solver** using the **constant-strength source panel method** (no Kutta condition, no vortices).
+This repository contains a lightweight, educational implementation of a **2D external flow solver** using the **constant-strength source panel method** (with an optional Kutta condition) and a handful of geometry utilities for shapes like circles and NACA airfoils. The `apps/` directory provides runnable examples for generating geometries, plotting panel layouts, and comparing pressure distributions. Core solver logic lives under `src/solver`, while reusable geometry definitions and plotting helpers sit in `src/geometry`.
+
+### Repository Structure
+
+```
+AeroPanel/
+├── apps/               # Example scripts
+│   ├── apps_header.py      # Common CLI options
+│   ├── naca_source.py      # NACA panel generation & plots
+│   ├── plot_circle_panels.py # Circle panel visualization
+│   ├── plot_naca_airfoil.py  # Airfoil panel visualization
+│   ├── source_cylinder.py    # Cylinder flow example
+│   └── xfoil_source_comp.py  # XFOIL comparison helper
+└── src/                # Library code
+    ├── geometry/
+    │   ├── Shape.py        # Base plotting & panel utilities
+    │   ├── Circle.py       # Circle discretization options
+    │   └── NACA.py         # Airfoil geometry builder
+    └── solver/
+        └── PanelSourceSolver.py # Source panel solver & post-processing
+```
+
+---
 
 ---
 
@@ -95,38 +117,21 @@ This pseudocode outlines the key steps to implement a **2D external flow solver*
 
 ## Data-Flow Diagram
 
-```mermaid
-flowchart TD
-  U["Freestream (U∞, α)"]
-  G["Geometry (shape, N)"]
-  Geo["Panels + control pts"]
-  A["Influence matrix (A)"]
-  RHS["RHS = -n̂·U∞"]
-  Solve["Solve for σ"]
-  Ut["Tangential velocity"]
-  Cp["Pressure Cp"]
-  Forces["Integrate → Cl, Cm"]
-  Output["Plots + tables"]
+```
+Inputs: Freestream (U∞, α), Geometry (shape, N)
+                └── Panels + control pts
+                       ├── Influence matrix (A)
+                       ├── RHS = -n̂·U∞
+                       └── Tangential velocity path
+                              ↓
+             A + RHS → Solve for σ
+                              ↓
+                    Tangential velocity (u_t)
+                              ↓
+                        Pressure Cp
+                      /             \
+          Integrate → Cl, Cm      Plots + tables
 
-  U --> RHS
-  G --> Geo
-  Geo --> A
-  Geo --> RHS
-  Geo --> Ut
-  A --> Solve
-  RHS --> Solve
-  Solve --> Ut
-  Ut --> Cp
-  Cp --> Forces
-  Cp --> Output
-  Forces --> Output
-
-  subgraph Legend
-    L1["N: number of panels"]
-    L2["σ: source strength"]
-    L3["u_t: tangential velocity"]
-    L4["Cp: pressure coefficient"]
-    L5["Cl: lift coefficients]
-    L6["Cm:  moment coefficient]
-  end
+Legend: N = number of panels, σ = source strength, u_t = tangential velocity,
+        Cp = pressure coefficient, Cl = lift coefficient, Cm = moment coefficient
 ```
