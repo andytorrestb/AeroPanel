@@ -1,6 +1,44 @@
 # AeroPanel - Pseudocode
 
-This pseudocode outlines the key steps to implement a **2D external flow solver** using the **constant-strength source panel method** (no Kutta condition, no vortices).
+This repository contains a lightweight, educational implementation of a **2D external flow solver** using the **constant-strength source panel method** (with an optional Kutta condition) and a handful of geometry utilities for shapes like circles and NACA airfoils. The `apps/` directory provides runnable examples for generating geometries, plotting panel layouts, and comparing pressure distributions. Core solver logic lives under `src/solver`, while reusable geometry definitions and plotting helpers sit in `src/geometry`.
+
+### Repository Structure
+
+```mermaid
+flowchart TD
+  root["AeroPanel/"]
+
+  root --> apps["apps/
+  Example scripts"]
+  apps --> apps_header["apps_header.py
+  Common CLI options"]
+  apps --> naca_source["naca_source.py
+  NACA panel generation & plots"]
+  apps --> plot_circle["plot_circle_panels.py
+  Circle panel visualization"]
+  apps --> plot_naca["plot_naca_airfoil.py
+  Airfoil panel visualization"]
+  apps --> source_cyl["source_cylinder.py
+  Cylinder flow example"]
+  apps --> xfoil_cmp["xfoil_source_comp.py
+  XFOIL comparison helper"]
+
+  root --> src["src/
+  Library code"]
+  src --> geom["geometry/"]
+  geom --> shape["Shape.py
+  Base plotting & panel utilities"]
+  geom --> circle["Circle.py
+  Circle discretization options"]
+  geom --> naca["NACA.py
+  Airfoil geometry builder"]
+
+  src --> solver["solver/"]
+  solver --> panelSolver["PanelSourceSolver.py
+  Source panel solver & post-processing"]
+```
+
+---
 
 ---
 
