@@ -4,38 +4,22 @@ This repository contains a lightweight, educational implementation of a **2D ext
 
 ### Repository Structure
 
-```mermaid
-flowchart TD
-  root["AeroPanel/"]
-
-  root --> apps["apps/
-  Example scripts"]
-  apps --> apps_header["apps_header.py
-  Common CLI options"]
-  apps --> naca_source["naca_source.py
-  NACA panel generation & plots"]
-  apps --> plot_circle["plot_circle_panels.py
-  Circle panel visualization"]
-  apps --> plot_naca["plot_naca_airfoil.py
-  Airfoil panel visualization"]
-  apps --> source_cyl["source_cylinder.py
-  Cylinder flow example"]
-  apps --> xfoil_cmp["xfoil_source_comp.py
-  XFOIL comparison helper"]
-
-  root --> src["src/
-  Library code"]
-  src --> geom["geometry/"]
-  geom --> shape["Shape.py
-  Base plotting & panel utilities"]
-  geom --> circle["Circle.py
-  Circle discretization options"]
-  geom --> naca["NACA.py
-  Airfoil geometry builder"]
-
-  src --> solver["solver/"]
-  solver --> panelSolver["PanelSourceSolver.py
-  Source panel solver & post-processing"]
+```
+AeroPanel/
+├── apps/               # Example scripts
+│   ├── apps_header.py      # Common CLI options
+│   ├── naca_source.py      # NACA panel generation & plots
+│   ├── plot_circle_panels.py # Circle panel visualization
+│   ├── plot_naca_airfoil.py  # Airfoil panel visualization
+│   ├── source_cylinder.py    # Cylinder flow example
+│   └── xfoil_source_comp.py  # XFOIL comparison helper
+└── src/                # Library code
+    ├── geometry/
+    │   ├── Shape.py        # Base plotting & panel utilities
+    │   ├── Circle.py       # Circle discretization options
+    │   └── NACA.py         # Airfoil geometry builder
+    └── solver/
+        └── PanelSourceSolver.py # Source panel solver & post-processing
 ```
 
 ---
@@ -133,38 +117,21 @@ flowchart TD
 
 ## Data-Flow Diagram
 
-```mermaid
-flowchart TD
-  U["Freestream (U∞, α)"]
-  G["Geometry (shape, N)"]
-  Geo["Panels + control pts"]
-  A["Influence matrix (A)"]
-  RHS["RHS = -n̂·U∞"]
-  Solve["Solve for σ"]
-  Ut["Tangential velocity"]
-  Cp["Pressure Cp"]
-  Forces["Integrate → Cl, Cm"]
-  Output["Plots + tables"]
+```
+Inputs: Freestream (U∞, α), Geometry (shape, N)
+                └── Panels + control pts
+                       ├── Influence matrix (A)
+                       ├── RHS = -n̂·U∞
+                       └── Tangential velocity path
+                              ↓
+             A + RHS → Solve for σ
+                              ↓
+                    Tangential velocity (u_t)
+                              ↓
+                        Pressure Cp
+                      /             \
+          Integrate → Cl, Cm      Plots + tables
 
-  U --> RHS
-  G --> Geo
-  Geo --> A
-  Geo --> RHS
-  Geo --> Ut
-  A --> Solve
-  RHS --> Solve
-  Solve --> Ut
-  Ut --> Cp
-  Cp --> Forces
-  Cp --> Output
-  Forces --> Output
-
-  subgraph Legend
-    L1["N: number of panels"]
-    L2["σ: source strength"]
-    L3["u_t: tangential velocity"]
-    L4["Cp: pressure coefficient"]
-    L5["Cl: lift coefficients]
-    L6["Cm:  moment coefficient]
-  end
+Legend: N = number of panels, σ = source strength, u_t = tangential velocity,
+        Cp = pressure coefficient, Cl = lift coefficient, Cm = moment coefficient
 ```
